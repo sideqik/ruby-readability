@@ -19,7 +19,7 @@ module Readability
       :blacklist                  => nil,
       :whitelist                  => nil
     }.freeze
-    
+
     REGEXES = {
         :unlikelyCandidatesRe => /combx|comment|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup/i,
         :okMaybeItsACandidateRe => /and|article|body|column|main|shadow/i,
@@ -33,7 +33,7 @@ module Readability
         :killBreaksRe => /(<br\s*\/?>(\s|&nbsp;?)*){1,}/,
         :videoRe => /http:\/\/(www\.)?(youtube|vimeo)\.com/i
     }
-    
+
     attr_accessor :options, :html, :best_candidate, :candidates, :best_candidate_has_image
 
     def initialize(input, options = {})
@@ -143,11 +143,11 @@ module Readability
 
       (list_images.empty? and content != @html) ? images(@html, true) : list_images
     end
-    
+
     def images_with_fqdn_uris!(source_uri)
       images_with_fqdn_uris(@html, source_uri)
     end
-    
+
     def images_with_fqdn_uris(document = @html.dup, source_uri)
       uri = URI.parse(source_uri)
       host = uri.host
@@ -159,7 +159,7 @@ module Readability
       images = []
       document.css("img").each do |elem|
         begin
-          elem['src'] = URI.join(base,elem['src']).to_s if URI.parse(elem['src']).host == nil 
+          elem['src'] = URI.join(base,elem['src']).to_s if URI.parse(elem['src']).host == nil
           images << elem['src'].to_s
         rescue URI::InvalidURIError => exc
           elem.remove
@@ -403,10 +403,6 @@ module Readability
     end
 
     def sanitize(node, candidates, options = {})
-      node.css("h1, h2, h3, h4, h5, h6").each do |header|
-        header.remove if class_weight(header) < 0 || get_link_density(header) > 0.33
-      end
-
       node.css("form, object, iframe, embed").each do |elem|
         elem.remove
       end
@@ -469,7 +465,7 @@ module Readability
         weight = class_weight(el)
         content_score = candidates[el] ? candidates[el][:content_score] : 0
         name = el.name.downcase
-        
+
         if weight + content_score < 0
           el.remove
           debug("Conditionally cleaned #{name}##{el[:id]}.#{el[:class]} with weight #{weight} and content score #{content_score} because score + content score was less than zero.")
@@ -479,7 +475,7 @@ module Readability
 
           # For every img under a noscript tag discount one from the count to avoid double counting
           counts["img"] -= el.css("noscript").css("img").length
-                
+
           content_length = el.text.strip.length  # Count the text length excluding any surrounding whitespace
           link_density = get_link_density(el)
 
