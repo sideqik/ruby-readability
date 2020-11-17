@@ -616,14 +616,27 @@ describe Readability do
     end
   end
 
-  describe "clean_conditionally" do
-    let (:html_fixture) { "<div><p>test</p><img src='abc.jpg' style='display: none;'></div>" }
+  describe "sanitize" do
+    context "without 'display: none' img" do
+      let (:html_fixture) { "<div><p>test <img src='https://www.website.com/abc.jpg'></p></div>" }
 
-    it "removes elements with display: none" do
-      @doc = Readability::Document.new(html_fixture)
-      expect(@doc.content).to include("test")
-      expect(@doc.content).to_not include("img")
-      expect(@doc.content).to_not include("abc.jpg")
+      it "does not remove elements without display: none" do
+        content = Readability::Document.new(html_fixture, :tags => %w[div p img a], :attributes => %w[src]).content
+        expect(content).to include("test")
+        expect(content).to include("img")
+        expect(content).to include("abc.jpg")
+      end
+    end
+
+    context "with 'display: none' img" do
+      let (:html_fixture) { "<div><p>test <img src='https://www.website.com/abc.jpg' style='display: none;'></p></div>" }
+
+      it "removes elements with display: none" do
+        content = Readability::Document.new(html_fixture, :tags => %w[div p img a], :attributes => %w[src]).content
+        expect(content).to include("test")
+        expect(content).to_not include("img")
+        expect(content).to_not include("abc.jpg")
+      end
     end
   end
 end

@@ -13,6 +13,7 @@ module Readability
       :weight_classes             => true,
       :clean_conditionally        => true,
       :remove_empty_nodes         => true,
+      :remove_display_none        => true,
       :min_image_width            => 130,
       :min_image_height           => 80,
       :ignore_image_format        => [],
@@ -431,14 +432,20 @@ module Readability
       base_replace_with_whitespace.each { |tag| replace_with_whitespace[tag] = true }
 
       ([node] + node.css("*")).each do |el|
-        # If element is in whitelist, delete all its attributes
-        if whitelist[el.node_name]
+        style = el.attributes['style'] && el.attributes['style'].value
+
+        # If removing display none and it isn't displayed, remove it
+        if @options[:remove_display_none] && style && style =~ REGEXES[:displayNone]
+          el.remove
+          debug("Removed element #{el.name.downcase} ##{el[:id]}.#{el[:class]} with display: none")
+
+        # Otherwise, if element is in whitelist, delete all its attributes
+        elsif whitelist[el.node_name]
           el.attributes.each { |a, x| el.delete(a) unless @options[:attributes] && @options[:attributes].include?(a.to_s) }
 
-          # Otherwise, replace the element with its contents
+        # Otherwise, replace the element with its contents
         else
-          # If element is root, replace the node as a text node
-          if el.parent.nil?
+          if el.parent.nil? # If element is root, replace the node as a text node
             node = Nokogiri::XML::Text.new(el.text, el.document)
             break
           else
@@ -466,14 +473,10 @@ module Readability
         weight = class_weight(el)
         content_score = candidates[el] ? candidates[el][:content_score] : 0
         name = el.name.downcase
-        style = el.attributes['style']
 
         if weight + content_score < 0
           el.remove
           debug("Conditionally cleaned #{name}##{el[:id]}.#{el[:class]} with weight #{weight} and content score #{content_score} because score + content score was less than zero.")
-        elsif style && style =~ REGEXES[:displayNone]
-          el.remove
-          debug("Conditionally cleaned display none element")
         elsif el.text.count(",") < 10
           counts = %w[p img li a embed input].inject({}) { |m, kind| m[kind] = el.css(kind).length; m }
           counts["li"] -= 100
