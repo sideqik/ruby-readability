@@ -31,7 +31,8 @@ module Readability
         :trimRe => /^\s+|\s+$/,
         :normalizeRe => /\s{2,}/,
         :killBreaksRe => /(<br\s*\/?>(\s|&nbsp;?)*){1,}/,
-        :videoRe => /http:\/\/(www\.)?(youtube|vimeo)\.com/i
+        :videoRe => /http:\/\/(www\.)?(youtube|vimeo)\.com/i,
+        :displayNone => /display:\s*none/i
     }
 
     attr_accessor :options, :html, :best_candidate, :candidates, :best_candidate_has_image
@@ -465,10 +466,14 @@ module Readability
         weight = class_weight(el)
         content_score = candidates[el] ? candidates[el][:content_score] : 0
         name = el.name.downcase
+        style = el.attributes['style']
 
         if weight + content_score < 0
           el.remove
           debug("Conditionally cleaned #{name}##{el[:id]}.#{el[:class]} with weight #{weight} and content score #{content_score} because score + content score was less than zero.")
+        elsif style && style =~ REGEXES[:displayNone]
+          el.remove
+          debug("Conditionally cleaned display none element")
         elsif el.text.count(",") < 10
           counts = %w[p img li a embed input].inject({}) { |m, kind| m[kind] = el.css(kind).length; m }
           counts["li"] -= 100
